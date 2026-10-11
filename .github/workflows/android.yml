@@ -8,6 +8,9 @@ on:
       - 'KeyMapperAndroid.zip'
       - '.github/workflows/android.yml'
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -24,9 +27,12 @@ jobs:
 
       - name: Preparar Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Instalar componentes Android
-        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+        with:
+          accept-android-sdk-licenses: true
+          packages: |
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
 
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -34,15 +40,20 @@ jobs:
           gradle-version: '8.9'
 
       - name: Extraer proyecto
-        run: unzip -o KeyMapperAndroid.zip -d .
+        run: |
+          test -f KeyMapperAndroid.zip
+          unzip -o KeyMapperAndroid.zip -d extracted
+          test -f extracted/KeyMapperAndroid/app/build.gradle.kts
 
       - name: Compilar APK
-        working-directory: KeyMapperAndroid
-        run: gradle assembleDebug
+        working-directory: extracted/KeyMapperAndroid
+        run: gradle --no-daemon assembleDebug
 
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: KeyMapper-debug-apk
-          path: KeyMapperAndroid/app/build/outputs/apk/debug/app-debug.apk
+          path: extracted/KeyMapperAndroid/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 14
           
