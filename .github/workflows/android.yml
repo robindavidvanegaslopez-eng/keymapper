@@ -26,13 +26,18 @@ jobs:
           java-version: '17'
 
       - name: Preparar Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
         with:
           accept-android-sdk-licenses: true
-          packages: |
-            platform-tools
-            platforms;android-35
-            build-tools;35.0.0
+          log-accepted-android-sdk-licenses: false
+          packages: ''
+
+      - name: Instalar componentes Android
+        run: |
+          sdkmanager --install \
+            "platform-tools" \
+            "platforms;android-35" \
+            "build-tools;35.0.0"
 
       - name: Preparar Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -49,7 +54,7 @@ jobs:
         working-directory: extracted/KeyMapperAndroid
         run: gradle --no-daemon assembleDebug
 
-      - name: Publicar APK
+      - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: KeyMapper-debug-apk
