@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Extraer el zip
-        run: unzip -q KeyMapperPro.zip
+        run: unzip -oq KeyMapperPro.zip
 
       - uses: actions/setup-java@v4
         with:
