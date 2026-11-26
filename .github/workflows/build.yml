@@ -2,45 +2,41 @@ name: Build APK
 
 on:
   push:
-    branches: [main, master]
+    branches: [ main, master ]
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-
-      - name: Extraer ZIP
-        run: |
-          mkdir -p extracted
-          unzip -oq KeyMapperPro.zip -d extracted
-
-      - name: Detectar proyecto
-        run: |
-          SETTINGS=$(find extracted -type f \( -name "settings.gradle" -o -name "settings.gradle.kts" \) | head -n 1)
-          if [ -z "$SETTINGS" ]; then
-            echo "No se encontró settings.gradle"
-            exit 1
-          fi
-          echo "PROJECT_DIR=$(dirname "$SETTINGS")" >> "$GITHUB_ENV"
 
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/setup-gradle@v3
+      - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: 8.7
+          gradle-version: "8.9"
 
-      - name: Compilar APK
-        working-directory: ${{ env.PROJECT_DIR }}
-        run: gradle assembleDebug --no-daemon
+      - name: Compilar APK (debug)
+        run: gradle assembleDebug --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
-          name: KeyMapperPro-debug
-          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
-          if-no-files-found: error
+          name: KeyMapperPro-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+
+      - name: Publicar el APK en Releases (sin zip)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "build-${{ github.run_number }}" \
+            app/build/outputs/apk/debug/app-debug.apk \
+            --title "KeyMapper Pro build ${{ github.run_number }}" \
+            --notes "APK debug" \
+            --target "${{ github.sha }}"
