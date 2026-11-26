@@ -14,6 +14,19 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Buscar la carpeta del proyecto
+        run: |
+          FILE=$(find . -name settings.gradle.kts -not -path "./.git/*" | head -n 1)
+          if [ -z "$FILE" ]; then
+            echo "No hay settings.gradle.kts en el repositorio: el proyecto no se subió."
+            echo "Archivos que sí hay:"
+            ls -R | head -n 60
+            exit 1
+          fi
+          DIR=$(dirname "$FILE")
+          echo "Proyecto encontrado en: $DIR"
+          echo "PROJECT_DIR=$DIR" >> "$GITHUB_ENV"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -24,19 +37,21 @@ jobs:
           gradle-version: "8.9"
 
       - name: Compilar APK (debug)
-        run: gradle assembleDebug --stacktrace
+        run: |
+          cd "$PROJECT_DIR"
+          gradle assembleDebug --stacktrace
 
       - uses: actions/upload-artifact@v4
         with:
           name: KeyMapperPro-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
 
       - name: Publicar el APK en Releases (sin zip)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "build-${{ github.run_number }}" \
-            app/build/outputs/apk/debug/app-debug.apk \
+            "$PROJECT_DIR/app/build/outputs/apk/debug/app-debug.apk" \
             --title "KeyMapper Pro build ${{ github.run_number }}" \
             --notes "APK debug" \
             --target "${{ github.sha }}"
