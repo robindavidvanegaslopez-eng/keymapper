@@ -14,13 +14,24 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Buscar la carpeta del proyecto
+      - name: Preparar el proyecto (descomprime el zip si hace falta)
         run: |
           FILE=$(find . -name settings.gradle.kts -not -path "./.git/*" | head -n 1)
           if [ -z "$FILE" ]; then
-            echo "No hay settings.gradle.kts en el repositorio: el proyecto no se subió."
-            echo "Archivos que sí hay:"
-            ls -R | head -n 60
+            ZIP=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+            if [ -z "$ZIP" ]; then
+              echo "No hay proyecto ni .zip en el repositorio."
+              ls -R | head -n 60
+              exit 1
+            fi
+            echo "Descomprimiendo $ZIP"
+            mkdir -p project
+            unzip -q -o "$ZIP" -d project
+            FILE=$(find project -name settings.gradle.kts | head -n 1)
+          fi
+          if [ -z "$FILE" ]; then
+            echo "El zip no contiene settings.gradle.kts. Contenido:"
+            ls -R project | head -n 60
             exit 1
           fi
           DIR=$(dirname "$FILE")
